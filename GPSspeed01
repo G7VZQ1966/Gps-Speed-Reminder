@@ -1,0 +1,114 @@
+from machine import Pin, UART, I2C
+import utime, time
+from ssd1306 import SSD1306_I2C
+from micropyGPS import MicropyGPS
+
+led1 = Pin(25, Pin.OUT)
+
+i2c=I2C(0, sda=Pin(8), scl=Pin(9), freq=400000)
+oled = SSD1306_I2C(128, 64, i2c)
+#------------------------------------------------------------------------
+oled.invert(0)
+oled.fill(0)
+oled.text(" ##############",0,10) #My Name Deleted
+oled.text(" ############",0,20)
+oled.text(" #######",0,30)
+oled.text(" ###########",0,40) #This is my address Deleted
+oled.text(" ########",0,50)
+oled.show()
+utime.sleep(5)
+oled.fill(0)
+oled.invert(0)
+oled.rect(0, 0, 128, 64, 1)
+oled.show()
+utime.sleep(1)
+oled.rect(15,10, 100, 45, 1)
+oled.show()
+utime.sleep(1)
+oled.rect(35, 20, 65, 25, 1)
+oled.show()
+utime.sleep(1)
+oled.text(" G7VZQ",39,29)
+oled.show()
+utime.sleep(1)
+oled.rect(35, 20, 65, 25, 0)
+oled.show()
+utime.sleep(1)
+oled.rect(15,10, 100, 45, 0)
+oled.show()
+utime.sleep(1)
+oled.rect(0, 0, 128, 64, 0)
+oled.show()
+utime.sleep(1)
+#------------------------------------------------------------------- Just My Logo on Start up
+
+
+gps_module = UART(1, baudrate=9600, tx=Pin(4), rx=Pin(5))
+led1.value(1)
+utime.sleep(0.5)
+led1.value(0)  #Just led test Program Started
+
+TIMEZONE = 1
+my_gps = MicropyGPS(TIMEZONE)
+
+
+
+def convert(parts):
+    if (parts[2] == 2):
+        return None
+        
+    data = parts[0]+(parts[1]/60.0)
+    
+    if (parts[2] == 'S'):
+        data = -data
+    if (parts[2] == 'E'):
+        data = -data
+
+    data = '{0:.6f}'.format(data) # to 6 decimal places
+    return str(data)
+
+
+
+while True:
+
+    length = gps_module.any()
+    if length>0:
+        b = gps_module.read(length)
+        for x in b:
+            msg = my_gps.update(chr(x))
+
+
+    latitude = convert(my_gps.latitude)
+    longitude = convert(my_gps.longitude)
+
+
+
+    
+    t = my_gps.timestamp
+    #t[0] => hours : t[1] => minutes : t[2] => seconds
+    gpsTime = '{:02d}:{:02d}:{:02}'.format(t[0], t[1], t[2])
+    
+    gpsdate = my_gps.date_string('Short')
+    speed = my_gps.speed_string('mph') #'kph' or 'mph' or 'knot'
+    #if 30.00 <= speed <= 33.00:
+        
+        #if 1 >= speed <= 3: 
+        #if speed =>1 :
+         #led1.value(1)
+        
+    #elif 33.00 >= speed :
+         #led1.value(0)
+    
+    
+    oled.fill(0)
+    oled.text('Lat :'+ latitude, 5, 0)
+    oled.text('Long:'+ longitude, 5, 12)
+    oled.text('Speed (MPH):'+ speed, 1, 24)
+    oled.text('Time:'+ gpsTime, 9, 36)
+    oled.text('Date:'+ gpsdate , 9, 48)
+    oled.show()
+    
+    if 30.00 <= speed <= 33.00:
+        led1.value(1)
+    elif 33.00 >= speed :
+        led1.value(0)
